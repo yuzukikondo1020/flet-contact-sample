@@ -34,6 +34,11 @@ def test_accepts_valid():
     assert h.get("Access-Control-Allow-Origin") == ORIGIN
 
 
+def test_accepts_phone():
+    code, _, _ = call("POST", body={**OK, "phone": "090-1234-5678"}, headers=ip(13))
+    assert code == 201
+
+
 @pytest.mark.parametrize("n,patch,field", [
     (2, {"email": "not-an-email"}, "email"),
     (3, {"name": "   "}, "name"),
@@ -41,6 +46,8 @@ def test_accepts_valid():
     (5, {"category": "hack"}, "category"),
     (6, {"message": "x" * 2001}, "message"),
     (7, {"name": 123}, "name"),
+    (11, {"phone": "090-1234-abcd"}, "phone"),
+    (12, {"phone": "0" * 21}, "phone"),
 ])
 def test_rejects_bad_input(n, patch, field):
     code, _, res = call("POST", body={**OK, **patch}, headers=ip(n))

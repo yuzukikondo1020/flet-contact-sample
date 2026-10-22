@@ -68,9 +68,12 @@ def get_db() -> sqlite3.Connection:
     conn.execute(
         """CREATE TABLE IF NOT EXISTS contacts (
             id TEXT PRIMARY KEY, received_at TEXT NOT NULL, name TEXT NOT NULL, email TEXT NOT NULL,
-            company TEXT NOT NULL, category TEXT NOT NULL, message TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'new')"""
+            company TEXT NOT NULL, phone TEXT NOT NULL DEFAULT '', category TEXT NOT NULL,
+            message TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'new')"""
     )
+    # 電話番号の列が無い古いデータベースには、列を足す
+    if "phone" not in [c["name"] for c in conn.execute("PRAGMA table_info(contacts)")]:
+        conn.execute("ALTER TABLE contacts ADD COLUMN phone TEXT NOT NULL DEFAULT ''")
     return conn
 
 
@@ -85,10 +88,10 @@ def receive_from_r2(client=None) -> int:
             rec = json.loads(s3.get_object(Bucket=BUCKET, Key=key)["Body"].read())
             with get_db() as conn:
                 conn.execute(
-                    "INSERT OR IGNORE INTO contacts (id, received_at, name, email, company, category, message)"
-                    " VALUES (?,?,?,?,?,?,?)",
+                    "INSERT OR IGNORE INTO contacts (id, received_at, name, email, company, phone, category, message)"
+                    " VALUES (?,?,?,?,?,?,?,?)",
                     (rec["id"], rec["received_at"], rec["name"], rec["email"], rec.get("company", ""),
-                     rec["category"], rec["message"]),
+                     rec.get("phone", ""), rec["category"], rec["message"]),
                 )
             s3.delete_object(Bucket=BUCKET, Key=key)
             moved += 1
@@ -144,7 +147,8 @@ def main(page: ft.Page):
                             wrap=True,
                             spacing=12,
                         ),
-                        ft.Text(f"{local_time(r['received_at'])}　受付番号 {r['id']}　{r['email']}",
+                        ft.Text(f"{local_time(r['received_at'])}　受付番号 {r['id']}　{r['email']}"
+                                + (f"　{r['phone']}" if r["phone"] else ""),
                                 size=12, selectable=True, color=ft.Colors.ON_SURFACE_VARIANT),
                         ft.Text(r["message"], selectable=True),
                         ft.Row(

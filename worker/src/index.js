@@ -7,6 +7,7 @@
 
 const MAX_BODY_BYTES = 16 * 1024;
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const PHONE_RE = /^[0-9-]+$/;
 // 改行(\n)とタブ(\t)は残し、それ以外の目に見えない制御文字を取り除く
 const CONTROL_CHARS_RE = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g;
 const CATEGORIES = ["php_update", "rebuild", "study", "other"];
@@ -16,6 +17,7 @@ const TEXT_FIELDS = {
   name: [true, 50],
   email: [true, 254],
   company: [false, 100],
+  phone: [false, 20],
   message: [true, 2000],
 };
 
@@ -62,6 +64,9 @@ function validate(body) {
   }
   if (clean.email !== undefined && !EMAIL_RE.test(clean.email)) {
     fail("email", "メールアドレスの形式が正しくありません");
+  }
+  if (clean.phone && !PHONE_RE.test(clean.phone)) {
+    fail("phone", "電話番号は数字とハイフンで入力してください");
   }
   if (!CATEGORIES.includes(body.category)) {
     fail("category", "ご用件を選んでください");
