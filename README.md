@@ -37,7 +37,7 @@ PHP も WordPress も使わずに、お知らせページと問い合わせフ�
 pip install -r form_app/requirements.txt -r admin_app/requirements.txt cf-publish
 ```
 
-Cloudflare への公開には [cf-publish](https://pypi.org/project/cf-publish/) を使います。Python だけで公開できるので、Node.js は要りません。
+Cloudflare への公開には [cf-publish](https://pypi.org/project/cf-publish/) を使います。Python だけで公開できるので、Node.js は要りません（本番で連続送信の制限を付けるときだけ、Node.js 20 以上が要ります）。
 
 ## 手元で動かす
 
@@ -101,6 +101,28 @@ cf-publish worker deploy . --var ALLOWED_ORIGINS=https://my-site.pages.dev --wor
 - 保存先のバケット `contact-inbox` が無ければ、このとき一緒に作られます。
 - 最後に表示される `https://contact-receiver.<サブドメイン>.workers.dev` が受付Worker のURLです。メモしておきます。
 - `--workers-dev` は、受付Worker をインターネットから呼べるようにする指定です。
+
+**連続送信の制限を付ける（Node.js 20 以上が必要）**
+
+cf-publish は、`wrangler.toml` に書いた連続送信の制限（`ratelimits`）を送りません。制限を付けるときは、続けて wrangler で公開し直します。wrangler は `pages.env` を読まないので、先に中身を環境変数に読み込みます。
+
+Windows（PowerShell）:
+
+```powershell
+Get-Content "$HOME\.config\cloudflare\pages.env" | ForEach-Object { $k, $v = $_ -split '=', 2; if ($v) { Set-Item "env:$k" $v.Trim() } }
+npx wrangler@4.147.0 deploy --var ALLOWED_ORIGINS:https://my-site.pages.dev
+```
+
+Mac・Linux:
+
+```bash
+set -a; . ~/.config/cloudflare/pages.env; set +a
+npx wrangler@4.147.0 deploy --var ALLOWED_ORIGINS:https://my-site.pages.dev
+```
+
+- 「last updated via the script API」という警告が出ますが、cf-publish で公開したものを上書きするという意味なので、そのまま進めて構いません。
+- 制限が効き始めるまで、数分かかります。また、きっちり5件では止まりません（Cloudflare の中の複数の機械が別々に数えるため）。大量の送信を減らすためのものと考えてください。
+- このあと受付Worker を公開し直すときも、wrangler を使います。cf-publish で公開し直すと、制限が外れることがあります。
 
 ### 3. フォームを書き出す
 
@@ -169,7 +191,7 @@ R2 の問い合わせが手元に移り、R2 からは消えます。
 - 必須項目、文字数、メールアドレスの形式、電話番号が数字とハイフンだけか、ご用件が決められた選択肢か、同意にチェックがあるか
 - 制御文字（目に見えない特殊な文字）を取り除く
 - 許可したサイト以外からのブラウザ経由の送信を拒否する
-- 同じ送信元からの連続送信を制限する（60秒に5件。`wrangler.toml` の `ratelimits`）。**cf-publish で公開した場合、この設定は送られません。** 本番で制限するときは、Cloudflare の画面でレート制限ルールを設定してください
+- 同じ送信元からの連続送信を制限する（60秒に5件。`wrangler.toml` の `ratelimits`）。**cf-publish で公開した場合、この設定は送られません。** 本番で制限するときは、手順2の「連続送信の制限を付ける」のとおり wrangler で公開し直してください
 - 16KBを超える送信を拒否する
 - `/api/contact` への POST 以外には応えない
 
@@ -185,7 +207,7 @@ R2 の問い合わせが手元に移り、R2 からは消えます。
 | cf-publish で受付Worker と Pages を本物の Cloudflare に公開する | 確認済み（Windows で） |
 | 静的に書き出したフォームを本物の Pages から開いて送信する（Pyodide 上の動作、ブラウザからの CORS） → 受付Worker → R2 → 担当者用アプリ | 確認済み（電話番号まで届くことも） |
 | 上の通しの確認を、`flet build web` と `flet publish` の両方で書き出したフォームで行う | 確認済み |
-| 本番での連続送信の制限 | **効いていない**（cf-publish は `ratelimits` を送らないため。上の「受付Worker がしているチェック」を参照） |
+| 本番での連続送信の制限（wrangler で公開し直す） | 確認済み（効き始めまで数分。効き方はゆるく、30回続けて送ると11回目あたりから一部が断られた） |
 
 ## フォントについて
 

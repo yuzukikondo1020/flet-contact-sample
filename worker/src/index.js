@@ -103,7 +103,7 @@ export default {
       return json({ detail: "このサイトからの送信は受け付けていません" }, 403, cors);
     }
 
-    // 連続送信の制限（wrangler.jsonc の ratelimits を設定したときだけ有効）
+    // 連続送信の制限（wrangler.toml の ratelimits を wrangler で送ったときだけ有効）
     if (env.RATE_LIMITER) {
       const ip = request.headers.get("CF-Connecting-IP") || "unknown";
       const { success } = await env.RATE_LIMITER.limit({ key: ip });

@@ -13,8 +13,8 @@ bucket_name = "contact-inbox"
 ALLOWED_ORIGINS = "http://localhost:8550"
 
 # 同じ送信元から 60秒に5件まで。
-# 注意: この設定は手元の `wrangler dev` では効くが、cf-publish では送られない。
-# 本番で連続送信を制限するときは、Cloudflare の画面でレート制限ルールを設定する。
+# 注意: この設定は wrangler（`wrangler dev` と `wrangler deploy`）では効くが、cf-publish では送られない。
+# 本番で連続送信を制限するときは、`wrangler deploy` で公開し直す（README の手順2）。
 [[ratelimits]]
 name = "RATE_LIMITER"
 namespace_id = "1001"
