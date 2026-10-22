@@ -78,6 +78,14 @@ def main(page: ft.Page):
         autofill_hints=ft.AutofillHint.EMAIL,
     )
     company = ft.TextField(label="会社名・屋号（任意）", max_length=100)
+    phone = ft.TextField(
+        label="電話番号（任意）",
+        max_length=20,
+        keyboard_type=ft.KeyboardType.PHONE,
+        autofill_hints=ft.AutofillHint.TELEPHONE_NUMBER,
+        # 数字とハイフンだけ入力できる
+        input_filter=ft.InputFilter(regex_string=r"[0-9-]", allow=True),
+    )
     category = ft.Dropdown(
         label="ご用件（必須）",
         options=[ft.DropdownOption(key=k, text=t) for k, t in CATEGORIES],
@@ -90,7 +98,7 @@ def main(page: ft.Page):
     sending = ft.ProgressRing(width=20, height=20, stroke_width=2, visible=False)
     submit = ft.FilledButton(content="送信する")
 
-    fields = {"name": name, "email": email, "company": company, "message": message}
+    fields = {"name": name, "email": email, "company": company, "phone": phone, "message": message}
 
     def clear_errors():
         for f in fields.values():
@@ -143,6 +151,7 @@ def main(page: ft.Page):
             "name": name.value.strip(),
             "email": email.value.strip(),
             "company": (company.value or "").strip(),
+            "phone": (phone.value or "").strip(),
             "category": category.value,
             "message": message.value.strip(),
             "consent": bool(consent.value),
@@ -179,6 +188,7 @@ def main(page: ft.Page):
             name,
             email,
             company,
+            phone,
             ft.Row([category]),
             message,
             consent,
