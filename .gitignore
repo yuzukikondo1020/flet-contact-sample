@@ -1,0 +1,20 @@
+# 担当者用アプリが保存する問い合わせ（個人情報）。絶対に Git に入れない
+admin_app/data/
+*.db
+*.db-journal
+
+# 書き出したフォームと、Cloudflare を手元で動かしたときの作業ファイル
+form_app/build/
+site/contact/
+.wrangler/
+node_modules/
+
+# Python
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+
+# Cloudflare の鍵を手元に置いた場合
+*.env
+.env*
