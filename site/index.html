@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>お知らせ｜山田工務店</title>
+<style>
+  :root { --fg:#1d2422; --muted:#5b6662; --line:#d9e0dd; --accent:#0e5f57; --bg:#f7f9f8; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font-family:"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif; line-height:1.8; }
+  .wrap { max-width:40rem; margin:0 auto; padding:2rem 16px 4rem; }
+  h1 { font-size:1.6rem; margin:0 0 .25rem; }
+  .sub { color:var(--muted); margin:0 0 2rem; }
+  ul { list-style:none; margin:0; padding:0; border-top:1px solid var(--line); }
+  li { padding:1rem 0; border-bottom:1px solid var(--line); }
+  time { display:block; font-size:.85rem; color:var(--muted); }
+  .contact { display:inline-block; margin-top:2rem; padding:.7rem 1.4rem; border-radius:6px;
+             background:var(--accent); color:#fff; text-decoration:none; font-weight:bold; }
+  footer { margin-top:3rem; font-size:.8rem; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>山田工務店</h1>
+  <p class="sub">お知らせ</p>
+
+  <!-- お知らせを足すときは、この <li> をひとつ複製して日付と文を書き換える -->
+  <ul>
+    <li><time datetime="2026-10-25">2026年10月25日</time>ホームページを新しくしました。お問い合わせはフォームから受け付けています。</li>
+    <li><time datetime="2026-10-01">2026年10月1日</time>年末年始の休業日は12月28日から1月4日までです。</li>
+  </ul>
+
+  <a class="contact" href="/contact/">お問い合わせ</a>
+
+  <footer>このサイトはHTMLファイルを配るだけの静的サイトです。</footer>
+</div>
+</body>
+</html>

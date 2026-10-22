@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "contact-receiver",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+
+  // 送信データの保存先（R2のバケット）。先に Cloudflare の画面か
+  // `npx wrangler r2 bucket create contact-inbox` で作っておく
+  "r2_buckets": [
+    { "binding": "INBOX", "bucket_name": "contact-inbox" }
+  ],
+
+  // 同じ送信元から 60秒に5件まで
+  "ratelimits": [
+    { "name": "RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } }
+  ],
+
+  "vars": {
+    // フォームを置くサイトのURL（カンマ区切り）。ここからの送信だけ受け付ける
+    "ALLOWED_ORIGINS": "http://localhost:8550"
+  }
+}
