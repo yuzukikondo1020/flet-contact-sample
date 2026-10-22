@@ -5,8 +5,9 @@
 手元のデータベース(SQLite)に移し、R2 からは消す。
 個人情報を Cloudflare に長く置かないための仕組み。
 
-R2 への接続情報は環境変数で渡す（コードやフォーム側には絶対に書かない）:
-  R2_ACCOUNT_ID         Cloudflare のアカウントID
+R2 への接続情報は、環境変数か ~/.config/cloudflare/pages.env（cf-publish と同じファイル）で渡す。
+コードやフォーム側には絶対に書かない:
+  CLOUDFLARE_ACCOUNT_ID Cloudflare のアカウントID（cf-publish と同じ名前）
   R2_ACCESS_KEY_ID      R2 の APIトークンのアクセスキーID
   R2_SECRET_ACCESS_KEY  R2 の APIトークンのシークレット
   R2_BUCKET             バケット名（既定: contact-inbox）
@@ -29,8 +30,27 @@ CATEGORY_LABELS = {"php_update": "PHPの更新", "rebuild": "作り直し", "stu
 
 
 # ---- R2（S3互換API） ------------------------------------------------------
+ENV_FILE = Path.home() / ".config" / "cloudflare" / "pages.env"
+
+
+def load_env_file(path: Path = ENV_FILE) -> None:
+    """KEY=VALUE の設定ファイルを読む。環境変数に同じ名前があれば、そちらを優先する。"""
+    if not path.is_file():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
 def r2_client():
-    endpoint = os.getenv("R2_ENDPOINT") or f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com"
+    load_env_file()
+    account = os.getenv("CLOUDFLARE_ACCOUNT_ID") or os.getenv("R2_ACCOUNT_ID")
+    if not os.getenv("R2_ENDPOINT") and not account:
+        raise KeyError("CLOUDFLARE_ACCOUNT_ID")
+    endpoint = os.getenv("R2_ENDPOINT") or f"https://{account}.r2.cloudflarestorage.com"
     return boto3.client(
         "s3",
         endpoint_url=endpoint,

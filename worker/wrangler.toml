@@ -1,0 +1,21 @@
+# 受付Worker の設定。cf-publish（または wrangler）がこのファイルを読む。
+name = "contact-receiver"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# 送信データの保存先（R2のバケット）。cf-publish はバケットが無ければ作る
+[[r2_buckets]]
+binding = "INBOX"
+bucket_name = "contact-inbox"
+
+[vars]
+# フォームを置くサイトのURL（カンマ区切り）。ここからの送信だけ受け付ける
+ALLOWED_ORIGINS = "http://localhost:8550"
+
+# 同じ送信元から 60秒に5件まで。
+# 注意: この設定は手元の `wrangler dev` では効くが、cf-publish では送られない。
+# 本番で連続送信を制限するときは、Cloudflare の画面でレート制限ルールを設定する。
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 5, period = 60 }

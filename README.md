@@ -31,66 +31,86 @@ PHP も WordPress も使わずに、お知らせページと問い合わせフ�
 ## 用意するもの
 
 - Python 3.12 以上
-- Node.js 20 以上（受付Worker を `wrangler` で動かす・公開するため）
 - Cloudflare のアカウント（無料）
 
 ```bash
-pip install -r form_app/requirements.txt -r admin_app/requirements.txt
-cd worker && npm install
+pip install -r form_app/requirements.txt -r admin_app/requirements.txt cf-publish
 ```
+
+Cloudflare への公開には [cf-publish](https://pypi.org/project/cf-publish/) を使います。Python だけで公開できるので、Node.js は要りません。
 
 ## 手元で動かす
 
-ターミナルを3つ開きます。
-
-**1. 受付Worker を起動する**（R2 も手元で再現されます）
-
-```bash
-cd worker
-npx wrangler dev --port 8787
-```
-
-**2. フォームを起動する**
+**1. フォームを起動する**
 
 ```bash
 cd form_app
 flet run --web --port 8550 main.py
 ```
 
-ブラウザが開いたら、入力して送信します。「送信しました」と受付番号が出れば成功です。
+ブラウザにフォームが開きます。空のまま送信すると、入力していない欄が赤くなります。送信先（受付Worker）がまだ無いので、入力して送信すると「送信できませんでした」と出ます。これで正常です。
 
-**3. テストを動かす**（受付Worker を起動したまま）
+**2. 受付Worker も手元で動かす（任意）**
+
+受付Worker を手元で試すときだけ、Node.js 20 以上が必要です。
+
+```bash
+cd worker
+npx wrangler@4.147.0 dev --port 8787
+```
+
+この状態でフォームから送信すると、「送信しました」と受付番号が出ます。
+
+**3. テストを動かす（任意）**（受付Worker を手元で起動したまま）
 
 ```bash
 pip install pytest boto3 "moto[server]"
 python -m pytest tests
 ```
 
-手元の `wrangler dev` の R2 は担当者用アプリから読めないため、担当者用アプリは Cloudflare に公開してから試します。
+続けて動かすと、受付Worker の連続送信の制限（60秒に5件）に引っかかって失敗します。1分おいてから動かしてください。
 
 ## Cloudflare に公開する
 
-### 1. R2 のバケットを作る
+以下では、サイトの名前（Pages のプロジェクト名）を `my-site` とします。公開後のURLは `https://my-site.pages.dev` です。ほかの人と重ならない名前にしてください。
 
-```bash
-cd worker
-npx wrangler login
-npx wrangler r2 bucket create contact-inbox
-```
+### 1. Cloudflare の鍵を用意する
+
+1. Cloudflare の画面右上のアイコン →「My Profile」→「API Tokens」→「Create Token」→「Custom token」で、次の3つの権限を付けたトークンを作ります。
+   - Account ／ Cloudflare Pages ／ Edit
+   - Account ／ Workers Scripts ／ Edit
+   - Account ／ Workers R2 Storage ／ Edit
+2. 次のファイルを作り、トークンとアカウントID（Cloudflare の画面の「Account home」などに表示されます）を書きます。
+   - Windows：`C:\Users\<ユーザー名>\.config\cloudflare\pages.env`
+   - Mac・Linux：`~/.config/cloudflare/pages.env`
+
+   ```
+   CLOUDFLARE_API_TOKEN=ここにトークン
+   CLOUDFLARE_ACCOUNT_ID=ここにアカウントID
+   ```
+
+このファイルは自分のパソコンにだけ置きます。GitHub や Discord に貼らないでください。
 
 ### 2. 受付Worker を公開する
 
-`worker/wrangler.jsonc` の `ALLOWED_ORIGINS` を、フォームを置くサイトのURL（手順4で決まる `https://<プロジェクト名>.pages.dev`）に書き換えてから公開します。
-
 ```bash
-npx wrangler deploy
+cd worker
+cf-publish worker deploy . --var ALLOWED_ORIGINS=https://my-site.pages.dev --workers-dev
 ```
 
-表示された `https://contact-receiver.<サブドメイン>.workers.dev` が受付Worker のURLです。
+- 保存先のバケット `contact-inbox` が無ければ、このとき一緒に作られます。
+- 最後に表示される `https://contact-receiver.<サブドメイン>.workers.dev` が受付Worker のURLです。メモしておきます。
+- `--workers-dev` は、受付Worker をインターネットから呼べるようにする指定です。
 
 ### 3. フォームを書き出す
 
 `form_app/config.py` の `API_URL` を、手順2のURLに `/api/contact` を付けたものに書き換えます。
+
+```python
+API_URL = "https://contact-receiver.<サブドメイン>.workers.dev/api/contact"
+```
+
+書き出して、お知らせページの `contact` フォルダに入れます。
 
 ```bash
 cd form_app
@@ -99,30 +119,37 @@ flet build web --base-url contact
 
 `build/web/` の中身を `site/contact/` にコピーします。
 
-- `flet build web` は初回に Flutter SDK を自動で取得するため、時間がかかります。
+- `flet build web` は初回に Flutter SDK を自動で取得するため、時間がかかります。前日までに一度動かしておいてください。
 - Flutter SDK を入れたくない場合は、`flet publish main.py -a assets --base-url contact --distpath ../site/contact` でも書き出せます。
 
 ### 4. お知らせページとフォームを公開する
 
-```bash
-npx wrangler pages deploy ../site --project-name <プロジェクト名>
-```
-
-Cloudflare の画面（Workers & Pages → Pages → アップロード）から `site/` フォルダをドラッグして公開することもできます。
-
-### 5. 担当者用アプリを設定する
-
-Cloudflare の画面で R2 の APIトークンを作ります（権限：オブジェクトの読み取りと書き込み、対象：`contact-inbox` だけ）。表示された値を環境変数に入れて起動します。
+いちばん上のフォルダ（`README.md` がある場所）に戻って実行します。
 
 ```bash
-export R2_ACCOUNT_ID=...
-export R2_ACCESS_KEY_ID=...
-export R2_SECRET_ACCESS_KEY=...
-cd admin_app
-python main.py
+cf-publish site --project my-site
 ```
 
-「受け取る」を押すと、R2 の問い合わせが手元に移り、R2 からは消えます。
+`https://my-site.pages.dev` を開き、「お問い合わせ」から送信します。「送信しました」と受付番号が出れば成功です。
+
+### 5. 担当者用アプリで受け取る
+
+1. Cloudflare の画面の「R2」→「Manage API Tokens」で、R2 用のトークンを作ります（権限：オブジェクトの読み取りと書き込み、対象：`contact-inbox` だけ）。手順1のトークンとは別物です。
+2. 表示されたアクセスキーIDとシークレットを、手順1の `pages.env` に書き足します。
+
+   ```
+   R2_ACCESS_KEY_ID=ここにアクセスキーID
+   R2_SECRET_ACCESS_KEY=ここにシークレット
+   ```
+
+3. 担当者用アプリを起動して「受け取る」を押します。
+
+   ```bash
+   cd admin_app
+   python main.py
+   ```
+
+R2 の問い合わせが手元に移り、R2 からは消えます。
 
 ## 安全のための決まりごと
 
@@ -137,11 +164,11 @@ python main.py
 - 必須項目、文字数、メールアドレスの形式、ご用件が決められた選択肢か、同意にチェックがあるか
 - 制御文字（目に見えない特殊な文字）を取り除く
 - 許可したサイト以外からのブラウザ経由の送信を拒否する
-- 同じ送信元からの連続送信を制限する（60秒に5件。`wrangler.jsonc` の `ratelimits`）
+- 同じ送信元からの連続送信を制限する（60秒に5件。`wrangler.toml` の `ratelimits`）。**cf-publish で公開した場合、この設定は送られません。** 本番で制限するときは、Cloudflare の画面でレート制限ルールを設定してください
 - 16KBを超える送信を拒否する
 - `/api/contact` への POST 以外には応えない
 
-## 確認済みのこと・まだのこと（2026年10月22日時点、Flet 1.0.5 / wrangler 4.147.0）
+## 確認済みのこと・まだのこと（2026年10月22日時点、Flet 1.0.5 / cf-publish 0.3.1）
 
 | 項目 | 状態 |
 | --- | --- |
@@ -149,9 +176,14 @@ python main.py
 | 担当者用アプリの受け取り処理（テスト3件、S3互換エミュレーター） | 確認済み |
 | フォームの表示、エラー表示、送信 → 受付Worker → R2 保存 | 確認済み（Flet の Web サーバーモードで実際のブラウザから） |
 | 担当者用アプリで受け取り、R2 から消える | 確認済み（S3互換エミュレーターで） |
+| cf-publish が受付Worker の設定を正しく読む | 確認済み（`--dry-run`） |
 | 静的に書き出したフォームをブラウザで開いて送信する（Pyodide 上の動作、ブラウザからの CORS） | **未確認**。作業環境から Pyodide の配布元につながらなかったため |
 | 本物の Cloudflare（Pages / Workers / R2）への公開 | **未確認** |
 
 ## フォントについて
 
 日本語を正しく表示するため、`form_app/assets/fonts/` に Noto Sans JP を同梱しています（SIL Open Font License 1.1）。同梱しないと、外部CDNを使わない書き出しでは日本語が表示されません。また、漢字が中国語の字形で表示されることがあります。
+
+## ライセンス
+
+コードは MIT License です（`LICENSE`）。同梱フォントは SIL Open Font License 1.1 です（`form_app/assets/fonts/OFL.txt`）。
