@@ -1,0 +1,110 @@
+# お知らせページ（site/）と問い合わせフォーム（form_app/）を、GitHub の上で書き出して Cloudflare Pages に公開する。
+#
+# 手元に Flutter SDK を入れなくても、main に push するだけで公開できる。
+# 使う前に、リポジトリの Settings → Secrets and variables → Actions で次を登録する（README の「GitHub Actions で公開する」）:
+#   Variables: PAGES_PROJECT  Pages のプロジェクト名（例: my-site）
+#              API_URL        受付Worker のURL + /api/contact
+#   Secrets:   CLOUDFLARE_API_TOKEN、CLOUDFLARE_ACCOUNT_ID（pages.env と同じもの）
+# 登録していないうちは、書き出しまでで止まり、公開はしない。
+#
+# 受付Worker の公開はここではしない（連続送信の制限を付けるため、README の手順2のとおり手元の wrangler で公開する）。
+
+name: お知らせページとフォームを公開する
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "form_app/**"
+      - ".github/workflows/deploy-pages.yml"
+  pull_request:
+    paths:
+      - "site/**"
+      - "form_app/**"
+      - ".github/workflows/deploy-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 公開が2つ同時に走らないようにする
+concurrency:
+  group: deploy-pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PAGES_PROJECT: ${{ vars.PAGES_PROJECT }}
+      API_URL: ${{ vars.API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # flet build web が初回に取ってくる Flutter SDK（~/flutter）と Flet の部品（~/.flet）を取っておく
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/flutter
+            ~/.flet
+          key: flet-${{ runner.os }}-${{ hashFiles('form_app/requirements.txt') }}
+
+      - name: 道具を入れる
+        run: pip install -r form_app/requirements.txt cf-publish==0.3.1
+
+      # config.py には URL だけを書く。ブラウザに配られ、誰でも読めるため
+      - name: フォームの送信先を書き込む
+        if: env.API_URL != ''
+        run: |
+          python - <<'EOF'
+          import os, re, pathlib
+          url = os.environ["API_URL"].strip()
+          if not re.fullmatch(r"https://[A-Za-z0-9.\-]+(/[A-Za-z0-9._~/\-]*)?", url):
+              raise SystemExit(f"API_URL の形が正しくありません（https:// で始まるURLだけを書く）: {url}")
+          p = pathlib.Path("form_app/config.py")
+          src, n = re.subn(r'^API_URL = .*$', f'API_URL = "{url}"', p.read_text(encoding="utf-8"), flags=re.M)
+          if n != 1:
+              raise SystemExit("form_app/config.py に API_URL の行が見つかりません")
+          p.write_text(src, encoding="utf-8")
+          print(f"送信先: {url}")
+          EOF
+
+      - name: フォームを書き出す（flet build web）
+        working-directory: form_app
+        run: flet build web --base-url contact --yes
+
+      - name: お知らせページの contact/ に入れる
+        run: |
+          rm -rf site/contact
+          mkdir -p site/contact
+          cp -r form_app/build/web/. site/contact/
+
+      # 公開前の中身を Actions の画面からダウンロードして確かめられるようにする
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: site/
+          retention-days: 7
+
+      - name: Cloudflare Pages に公開する
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && env.PAGES_PROJECT != '' && env.API_URL != ''
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Secrets の CLOUDFLARE_API_TOKEN と CLOUDFLARE_ACCOUNT_ID を登録してください"
+            exit 1
+          fi
+          cf-publish site --project "$PAGES_PROJECT"
+          echo "::notice::公開しました: https://$PAGES_PROJECT.pages.dev（cf-publish が表示する英数字付きのURLからは送信できません）"
+
+      - name: 公開しなかった理由を出す
+        if: github.event_name != 'pull_request' && (env.PAGES_PROJECT == '' || env.API_URL == '')
+        run: echo "::notice::Variables の PAGES_PROJECT と API_URL が登録されていないので、書き出しまでで止めました"
