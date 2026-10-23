@@ -7,7 +7,7 @@
 Flutter SDK は自分で入れなくて大丈夫です。`flet build web` を初めて動かしたときに、Flet が自動で `ホームフォルダ/flutter/<版>` に入れます。そのぶん初回は時間がかかり、ディスクも 3〜4GB ほど使います（Windows で Flutter SDK が 3.1GB、Flet の部品が 0.25GB でした）。
 
 1. Python 3.12 以上を入れます。
-2. 見本（このリポジトリ）のいちばん上のフォルダで、Flet を入れます。
+2. 見本（このリポジトリ）のいちばん上のフォルダで、Flet を入れます。Mac と Linux は、下の各 OS の手順で作る仮想環境の中で入れます。
 
    ```bash
    pip install -r form_app/requirements.txt
@@ -45,20 +45,33 @@ Flutter SDK は自分で入れなくて大丈夫です。`flet build web` を初
 
 ## Mac
 
-自分で入れるのは Xcode のコマンドラインツールだけです。Flutter が使う Git などが入っています。Xcode そのもの（大きいアプリ）は、Web に書き出すだけなら要りません。
+自分で入れるのは、Xcode のコマンドラインツールと、新しい Python です。Mac mini（Apple シリコン、macOS 26.2、Flet 1.0.5）で実際に試しました。
 
-1. ターミナルで次を打ちます。
+1. Xcode のコマンドラインツールを入れます。Flutter が使う Git などが入っています。Xcode そのもの（大きいアプリ）は、Web に書き出すだけなら要りません。
 
    ```bash
    xcode-select --install
    ```
 
-2. 確かめる画面が出たら「インストール」を押し、終わったら「完了」を押します。すでに入っていれば、そのように表示されます。
+   確かめる画面が出たら「インストール」を押します。すでに入っていれば、そのように表示されます。
+
+2. uv（Python を入れる道具）で Python 3.12 を入れ、見本のフォルダに仮想環境を作ります。Mac にはもともと Python 3.9 が入っていますが、古くて使えません。
+
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   uv venv --python 3.12 --seed .venv
+   . .venv/bin/activate
+   pip install -r form_app/requirements.txt
+   ```
+
+   uv は、Homebrew を使っているなら `brew install uv` でも入ります（試したのはこちら）。
 
 つまずきやすい所：
 
+- Homebrew の Python（python@3.12、python@3.13）は、macOS 26.2 では仮想環境を作るところで「ensurepip … returned non-zero exit status」と出て失敗しました（2026年10月24日、入れ直しても同じ）。Python の部品が macOS の部品と合っていないためです。上の uv で入れた Python なら動きます。
+- python.org のインストーラーで入れた Python でもよいはずですが、試していません。
 - Intel の Mac は、今は使えますが、Flutter がこの先の版で対応をやめる予定です。
-- Mac では実際には試していません。Flutter の公式の説明による手順です。
+- この Mac には Flutter SDK がもともと入っていたので、初回に取ってくるところは試せていません。書き出しは約40秒でした。
 
 ## Linux
 
