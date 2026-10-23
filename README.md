@@ -141,7 +141,7 @@ flet build web --base-url contact
 
 `build/web/` の中身を `site/contact/` にコピーします。
 
-- `flet build web` は初回に Flutter SDK を自動で取得するため、時間がかかります。前日までに一度動かしておいてください。
+- `flet build web` は初回に Flutter SDK を自動で取得するため、時間がかかります。前日までに一度動かしておいてください。OS ごとの準備は [docs/flet-build-web.md](docs/flet-build-web.md) にあります。
 - Flutter SDK を入れたくない場合は、`flet publish main.py -a assets --base-url contact --distpath ../site/contact` でも書き出せます。
 - 手元で書き出さずに、GitHub の上で書き出して公開することもできます（下の「GitHub Actions で公開する」）。
 
