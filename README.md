@@ -143,6 +143,7 @@ flet build web --base-url contact
 
 - `flet build web` は初回に Flutter SDK を自動で取得するため、時間がかかります。前日までに一度動かしておいてください。
 - Flutter SDK を入れたくない場合は、`flet publish main.py -a assets --base-url contact --distpath ../site/contact` でも書き出せます。
+- 手元で書き出さずに、GitHub の上で書き出して公開することもできます（下の「GitHub Actions で公開する」）。
 
 ### 4. お知らせページとフォームを公開する
 
@@ -175,6 +176,29 @@ cf-publish site --project my-site
    ```
 
 R2 の問い合わせが手元に移り、R2 からは消えます。
+
+## GitHub Actions で公開する（手元に Flutter SDK を入れない場合）
+
+手順3・4の代わりに使えます。`site/` か `form_app/` を変えて main に push すると、GitHub の上でフォームを書き出し（`flet build web`）、Pages に公開します（`.github/workflows/deploy-pages.yml`）。手順1・2（鍵と受付Worker）は、先に手元で済ませておきます。
+
+1. このリポジトリを自分の GitHub に置きます（Fork するか、新しいリポジトリに push する）。Fork したときは、「Actions」タブで Actions を有効にします。
+2. リポジトリの「Settings」→「Secrets and variables」→「Actions」で、次の4つを登録します。
+
+   | 種類 | 名前 | 値 |
+   | --- | --- | --- |
+   | Variables | `PAGES_PROJECT` | Pages のプロジェクト名（例：`my-site`） |
+   | Variables | `API_URL` | 手順2のURLに `/api/contact` を付けたもの |
+   | Secrets | `CLOUDFLARE_API_TOKEN` | `pages.env` と同じトークン |
+   | Secrets | `CLOUDFLARE_ACCOUNT_ID` | `pages.env` と同じアカウントID |
+
+3. main に push します。「Actions」タブの「お知らせページとフォームを公開する」→「Run workflow」で、手で動かすこともできます。
+4. 終わったら `https://my-site.pages.dev` を開いて、送信を試します。
+
+- `form_app/config.py` は書き換えなくて構いません。Actions が `API_URL` を書き込んでから書き出します。
+- 初回は Flutter SDK を取ってくるので、数分かかります。2回目からは取っておいたものを使います。
+- Variables を登録するまでは、書き出しまでで止まり、公開はしません。プルリクエストでも書き出しだけをします。書き出したものは、Actions の画面の「site」からダウンロードして確かめられます。
+- R2 の鍵（`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`）は GitHub に登録しません。担当者のパソコンにだけ置きます。
+- 受付Worker は、ここでは公開しません。連続送信の制限を付けるため、手順2のとおり手元の wrangler で公開します。
 
 ## 安全のための決まりごと
 
