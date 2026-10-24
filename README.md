@@ -32,14 +32,22 @@ PHP も WordPress も使わずに、お知らせページと問い合わせフ�
 
 - Python 3.13、Claude のアカウント（有料プラン）と Claude Desktop、Cloudflare のアカウント（無料）
 
-パソコンの準備は、勉強会の準備資料（Windows編・Mac編・Linuxに変える）のとおりにします。作業フォルダ `flet-study` を作って仮想環境 `.venv` を有効にするところまで済ませたら、その中にこの見本を置きます。
+パソコンの準備は、勉強会の準備資料（Windows編・Mac編・Linuxに変える）のとおりにします。準備資料の「段2：作業フォルダを作る」で作業フォルダ `flet-study` を作り、その中に仮想環境 `.venv` を作って有効にするところまで済ませたら、そのフォルダにこの見本を置きます。
+
+| OS | `flet-study` の場所 |
+| --- | --- |
+| Windows（ユーザー名が半角英数だけ） | `C:\Users\<ユーザー名>\flet-study`（PowerShell では `$HOME\flet-study`） |
+| Windows（ユーザー名に日本語や空白がある） | `C:\flet-study` |
+| Mac・Linux | ホームフォルダの直下の `~/flet-study`（Mac は iCloud の中にしない） |
+
+まだ作っていないときは、上の場所に `flet-study` というフォルダだけ先に作って、見本を入れておけば大丈夫です。仮想環境と部品を入れるのは、あとで準備資料のとおりにやります。
 
 **見本を入れる（Git は要りません）**
 
 1. https://github.com/yuzukikondo1020/flet-contact-sample を開きます。
 2. 緑の「Code」ボタン →「Download ZIP」を押します。
 3. ダウンロードした `flet-contact-sample-main.zip` を展開します。Windows はエクスプローラーで右クリック →「すべて展開」、Mac はダブルクリックです。
-4. 中の `flet-contact-sample-main` フォルダを、`flet-study` の中に移します。「ダウンロード」や OneDrive の中に置いたままにはしません。フォルダの名前はそのままで構いません。
+4. 中の `flet-contact-sample-main` フォルダを、上の表の `flet-study` の中に移します。「ダウンロード」や OneDrive の中に置いたままにはしません。フォルダの名前はそのままで構いません。
 
 `(.venv)` が出ている状態で、見本のフォルダに入って部品を入れます。
 
