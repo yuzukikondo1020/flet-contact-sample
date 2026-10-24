@@ -30,14 +30,17 @@ PHP も WordPress も使わずに、お知らせページと問い合わせフ�
 
 ## 用意するもの
 
-- Python 3.12 以上
-- Cloudflare のアカウント（無料）
+- Python 3.13、Claude のアカウント（有料プラン）と Claude Desktop、Cloudflare のアカウント（無料）
+
+パソコンの準備は、勉強会の準備資料（Windows編・Mac編・Linuxに変える）のとおりにします。作業フォルダ `flet-study` を作って仮想環境 `.venv` を有効にするところまで済ませたら、その中にこの見本を置き、見本のいちばん上のフォルダで部品を入れます。
 
 ```bash
-pip install -r form_app/requirements.txt -r admin_app/requirements.txt cf-publish
+python -m pip install -r form_app/requirements.txt -r admin_app/requirements.txt cf-publish
 ```
 
-Cloudflare への公開には [cf-publish](https://pypi.org/project/cf-publish/) を使います。Python だけで公開できるので、Node.js は要りません（本番で連続送信の制限を付けるときだけ、Node.js 20 以上が要ります）。
+- 見本のフォームは Flet 1.0 の書き方なので、`requirements.txt` で `flet==1.0.5` に固定しています。
+- 見本には、準備資料の `CLAUDE.md` に、受付Worker を例外にする1行を足したものを入れてあります（`CLAUDE.md`）。
+- 受付Worker の公開には [cf-publish](https://pypi.org/project/cf-publish/) を使います。Python の道具なので、Node.js は要りません。
 
 ## 手元で動かす
 
@@ -50,9 +53,9 @@ flet run --web --port 8550 main.py
 
 ブラウザにフォームが開きます。空のまま送信すると、入力していない欄が赤くなります。送信先（受付Worker）がまだ無いので、入力して送信すると「送信できませんでした」と出ます。これで正常です。
 
-**2. 受付Worker も手元で動かす（任意）**
+**2. 受付Worker も手元で動かす（任意・運営者向け）**
 
-受付Worker を手元で試すときだけ、Node.js 20 以上が必要です。
+受付Worker を手元で試すときだけ、Node.js 20 以上が必要です。勉強会ではやりません。
 
 ```bash
 cd worker
@@ -61,10 +64,10 @@ npx wrangler@4.147.0 dev --port 8787
 
 この状態でフォームから送信すると、「送信しました」と受付番号が出ます。
 
-**3. テストを動かす（任意）**（受付Worker を手元で起動したまま）
+**3. テストを動かす（任意・運営者向け）**（受付Worker を手元で起動したまま）
 
 ```bash
-pip install pytest boto3 "moto[server]"
+python -m pip install pytest boto3 "moto[server]"
 python -m pytest tests
 ```
 
@@ -102,9 +105,9 @@ cf-publish worker deploy . --var ALLOWED_ORIGINS=https://my-site.pages.dev --wor
 - 最後に表示される `https://contact-receiver.<サブドメイン>.workers.dev` が受付Worker のURLです。メモしておきます。
 - `--workers-dev` は、受付Worker をインターネットから呼べるようにする指定です。
 
-**連続送信の制限を付ける（Node.js 20 以上が必要）**
+**連続送信の制限を付ける（運営者向け・Node.js 20 以上が必要）**
 
-cf-publish は、`wrangler.toml` に書いた連続送信の制限（`ratelimits`）を送りません。制限を付けるときは、続けて wrangler で公開し直します。wrangler は `pages.env` を読まないので、先に中身を環境変数に読み込みます。
+勉強会ではやりません。サイトを本番で使い続けるときに付けます。cf-publish は、`wrangler.toml` に書いた連続送信の制限（`ratelimits`）を送りません。制限を付けるときは、続けて wrangler で公開し直します。wrangler は `pages.env` を読まないので、先に中身を環境変数に読み込みます。
 
 Windows（PowerShell）:
 
@@ -132,31 +135,32 @@ npx wrangler@4.147.0 deploy --var ALLOWED_ORIGINS:https://my-site.pages.dev
 API_URL = "https://contact-receiver.<サブドメイン>.workers.dev/api/contact"
 ```
 
-書き出して、お知らせページの `contact` フォルダに入れます。
+準備資料の「動作確認」と同じ `flet publish` で書き出し、お知らせページの `contact` フォルダに入れます。
 
 ```bash
 cd form_app
-flet build web --base-url contact
+flet publish main.py -a assets --base-url contact --distpath ../site/contact
 ```
 
-`build/web/` の中身を `site/contact/` にコピーします。
-
-- `flet build web` は初回に Flutter SDK を自動で取得するため、時間がかかります。前日までに一度動かしておいてください。OS ごとの準備は [docs/flet-build-web.md](docs/flet-build-web.md) にあります。
-- Flutter SDK を入れたくない場合は、`flet publish main.py -a assets --base-url contact --distpath ../site/contact` でも書き出せます。
+- `-a assets` は同梱の日本語フォントを一緒に入れる指定、`--base-url contact` はサイトの `contact/` の下に置くための指定です。
+- 書き出したものは、`site` フォルダで `flet serve .` を実行して http://localhost:8000/contact/ を開くと、公開する前に確かめられます。
+- 開いたときの読み込みを速くしたい人は、`flet build web` でも書き出せます。初回に Flutter SDK（3〜4GB）を取ってくるので、準備は [docs/flet-build-web.md](docs/flet-build-web.md) を見てください。
 - 手元で書き出さずに、GitHub の上で書き出して公開することもできます（下の「GitHub Actions で公開する」）。
 
 ### 4. お知らせページとフォームを公開する
 
-いちばん上のフォルダ（`README.md` がある場所）に戻って実行します。
+準備資料の「Cloudflareの準備」と同じく、Cloudflare の画面から上げます。
 
-```bash
-cf-publish site --project my-site
-```
+1. Workers & Pages → Create → Pages →「Upload assets」を選びます。
+2. プロジェクト名に `my-site` を入れ、`site` フォルダの中身をドラッグ&ドロップで上げます。
+3. 2回目からは、そのプロジェクトの画面で新しいデプロイを作り、同じように上げ直します。
+
+コマンドで上げたいときは、いちばん上のフォルダで `cf-publish site --project my-site` でも上げられます。
 
 `https://my-site.pages.dev` を開き、「お問い合わせ」から送信します。「送信しました」と受付番号が出れば成功です。
 
 - フォームを開いてから使えるようになるまで、10〜15秒かかります。そのあいだ、日本語が □ で表示されます。Python（Pyodide）と日本語フォントを読み込んでいるためで、故障ではありません。
-- cf-publish が最後に表示する `https://<英数字>.my-site.pages.dev` からは送信できません。受付Worker が受け付けるのは、手順2の `ALLOWED_ORIGINS` に書いた `https://my-site.pages.dev` からの送信だけです。
+- 上げたあとに表示される `https://<英数字>.my-site.pages.dev` からは送信できません。受付Worker が受け付けるのは、手順2の `ALLOWED_ORIGINS` に書いた `https://my-site.pages.dev` からの送信だけです。
 
 ### 5. 担当者用アプリで受け取る
 
@@ -177,9 +181,9 @@ cf-publish site --project my-site
 
 R2 の問い合わせが手元に移り、R2 からは消えます。
 
-## GitHub Actions で公開する（手元に Flutter SDK を入れない場合）
+## GitHub Actions で公開する（任意）
 
-手順3・4の代わりに使えます。`site/` か `form_app/` を変えて main に push すると、GitHub の上でフォームを書き出し（`flet build web`）、Pages に公開します（`.github/workflows/deploy-pages.yml`）。手順1・2（鍵と受付Worker）は、先に手元で済ませておきます。
+手順3・4の代わりに使えます。勉強会では、運営の実演に使います。`site/` か `form_app/` を変えて main に push すると、GitHub の上でフォームを書き出し（`flet build web`）、Pages に公開します（`.github/workflows/deploy-pages.yml`）。手順1・2（鍵と受付Worker）は、先に手元で済ませておきます。
 
 1. このリポジトリを自分の GitHub に置きます（Fork するか、新しいリポジトリに push する）。Fork したときは、「Actions」タブで Actions を有効にします。
 2. リポジトリの「Settings」→「Secrets and variables」→「Actions」で、次の4つを登録します。
@@ -219,10 +223,11 @@ R2 の問い合わせが手元に移り、R2 からは消えます。
 - 16KBを超える送信を拒否する
 - `/api/contact` への POST 以外には応えない
 
-## 確認済みのこと・まだのこと（2026年10月22日時点、Flet 1.0.5 / cf-publish 0.3.1）
+## 確認済みのこと・まだのこと（2026年10月24日時点、Flet 1.0.5 / cf-publish 0.3.1）
 
 | 項目 | 状態 |
 | --- | --- |
+| Python 3.13 で動く（テスト、`flet publish`） | 確認済み（Windows 11 と WSL の Ubuntu 24.04 で） |
 | 受付Worker のチェック（テスト16件、`wrangler dev`） | 確認済み |
 | フォーム・受付Worker・担当者用アプリの入力欄がそろっている（テスト2件） | 確認済み |
 | 担当者用アプリの受け取り処理（テスト5件、S3互換エミュレーター） | 確認済み |
