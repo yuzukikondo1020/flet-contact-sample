@@ -32,9 +32,19 @@ PHP も WordPress も使わずに、お知らせページと問い合わせフ�
 
 - Python 3.13、Claude のアカウント（有料プラン）と Claude Desktop、Cloudflare のアカウント（無料）
 
-パソコンの準備は、勉強会の準備資料（Windows編・Mac編・Linuxに変える）のとおりにします。作業フォルダ `flet-study` を作って仮想環境 `.venv` を有効にするところまで済ませたら、その中にこの見本を置き、見本のいちばん上のフォルダで部品を入れます。
+パソコンの準備は、勉強会の準備資料（Windows編・Mac編・Linuxに変える）のとおりにします。作業フォルダ `flet-study` を作って仮想環境 `.venv` を有効にするところまで済ませたら、その中にこの見本を置きます。
+
+**見本を入れる（Git は要りません）**
+
+1. https://github.com/yuzukikondo1020/flet-contact-sample を開きます。
+2. 緑の「Code」ボタン →「Download ZIP」を押します。
+3. ダウンロードした `flet-contact-sample-main.zip` を展開します。Windows はエクスプローラーで右クリック →「すべて展開」、Mac はダブルクリックです。
+4. 中の `flet-contact-sample-main` フォルダを、`flet-study` の中に移します。「ダウンロード」や OneDrive の中に置いたままにはしません。フォルダの名前はそのままで構いません。
+
+`(.venv)` が出ている状態で、見本のフォルダに入って部品を入れます。
 
 ```bash
+cd flet-contact-sample-main
 python -m pip install -r form_app/requirements.txt -r admin_app/requirements.txt cf-publish
 ```
 
